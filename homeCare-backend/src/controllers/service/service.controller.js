@@ -103,14 +103,12 @@ exports.updateService = async (req, res) => {
 exports.getService = async ( req, res) => {
     logger.info("get service api called.....");
     try { 
-        const cat = await serviceModel
-            .find({
-                $or: [
-                    { approvalStatus: "APPROVED" },
-                    { approvalStatus: { $exists: false } },
-                ],
-            })
-            .populate("agentId");
+        const cat = await serviceModel.find({
+            $or: [
+                { approvalStatus: "APPROVED" },
+                { approvalStatus: { $exists: false } },
+            ],
+        });
         return res.status(200).json({
             success: true,
             message: "category get succefully ",
