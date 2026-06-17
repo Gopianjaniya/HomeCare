@@ -4,9 +4,14 @@
   //
   // Apna admin email/password yahan bharo:
 
-  const API_URL = "http://localhost:5000";
-  const ADMIN_EMAIL = "dipanshumalviya9@gmail.com"; // <- tumhara email
-  const ADMIN_PASSWORD = "123456";                  // <- tumhara password
+  const API_URL = normalizeApiUrl(process.env.SEED_API_URL || "https://homecare-1-ftut.onrender.com/api");
+  const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || "dipanshumalviya9@gmail.com";
+  const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "123456";
+
+  function normalizeApiUrl(url) {
+    const clean = String(url || "").replace(/\/+$/, "");
+    return clean.endsWith("/api") ? clean : `${clean}/api`;
+  }
 
   const SERVICES = [
     {
@@ -231,7 +236,7 @@
   }
 
   // 2. Existing services
-  const existing = await api("/service/getService", "GET", null, adminToken);
+  const existing = await api("/service/admin/all", "GET", null, adminToken);
   const existingList = existing.data || [];
   const existingNames = new Set(existingList.map((s) => s.categoryName.trim().toLowerCase()));
   console.log("Already in DB:", existingNames.size, "services\n");
@@ -243,18 +248,34 @@
   for (const svc of SERVICES) {
     const key = svc.categoryName.trim().toLowerCase();
     let serviceId;
+    let serviceAlreadyExists = false;
 
     if (existingNames.has(key)) {
+      serviceAlreadyExists = true;
       const match = existingList.find((s) => s.categoryName.trim().toLowerCase() === key);
       serviceId = match?._id;
       console.log("Skip (exists):", svc.categoryName);
     } else {
       try {
-        const created = await api("/service/createService", "POST", { categoryName: svc.categoryName }, adminToken);
+        const firstVariant = svc.variants[0];
+        const created = await api(
+          "/service/createService",
+          "POST",
+          {
+            categoryName: svc.categoryName,
+            variantName: firstVariant?.variantName,
+            variantPrice: firstVariant?.variantPrice,
+          },
+          adminToken
+        );
         serviceId = created.data?._id;
         existingNames.add(key);
         addedServices++;
         console.log("Created:", svc.categoryName);
+        if (firstVariant) {
+          addedVariants++;
+          console.log("  + " + firstVariant.variantName + " Rs." + firstVariant.variantPrice);
+        }
       } catch (err) {
         console.error("Failed:", svc.categoryName, "-", err.message);
         continue;
@@ -263,7 +284,8 @@
 
     if (!serviceId) continue;
 
-    for (const v of svc.variants) {
+    const variantsToAdd = serviceAlreadyExists ? svc.variants : svc.variants.slice(1);
+    for (const v of variantsToAdd) {
       try {
         await api("/service/" + serviceId + "/variant", "POST", { variantName: v.variantName, variantPrice: v.variantPrice }, adminToken);
         addedVariants++;
