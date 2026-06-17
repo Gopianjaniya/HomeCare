@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use(
     cors({
-        origin: "*",
+        origin: "https://home-care-ujqy.vercel.app/",
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         exposedHeaders: ["Content-Type", "Authorization"],
@@ -38,7 +38,7 @@ if (process.env.NODE_ENV !== "production") {
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
-        message: "Speedu backend is running",
+        message: "HomeCare backend is running",
     });
 });
 

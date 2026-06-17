@@ -32,8 +32,8 @@ exports.adminLogin = async (req, res) => {
     }
 
     const payload = {
-      id: "speedu-admin",
-      userId: "speedu-admin",
+      id: "HomeCare-admin",
+      userId: "HomeCare-admin",
       email: adminEmail,
       role: "admin",
       status: "active",

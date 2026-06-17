@@ -1,4 +1,4 @@
-// Speedu Direct MongoDB Seed Script
+// HomeCare Direct MongoDB Seed Script
 // Backend chalu karne ki zaroorat NAHI hai
 // Run: node seed.js
 // Ye script seedha MongoDB me data daalti hai
@@ -7,11 +7,11 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 
 const MONGO_URI = process.env.MONGO_URI;
-const DB_NAME = process.env.DB_NAME || "speedu";
+const DB_NAME = process.env.DB_NAME || "HomeCare";
 
 if (!MONGO_URI) {
   console.error("ERROR: MONGO_URI .env me nahi mila!");
-  console.error(".env file check karo speedu-backend folder me");
+  console.error(".env file check karo HomeCare-backend folder me");
   process.exit(1);
 }
 
@@ -221,7 +221,7 @@ const SERVICES = [
 ];
 
 async function run() {
-  console.log("\nSpeedu MongoDB Seed");
+  console.log("\nHomeCare MongoDB Seed");
   console.log("====================");
   console.log("Connecting to MongoDB...");
 

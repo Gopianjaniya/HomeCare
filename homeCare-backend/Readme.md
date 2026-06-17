@@ -1,4 +1,4 @@
-# Speedu - Node.js + Express + MongoDB Backend
+# speedu - Node.js + Express + MongoDB Backend
 
 A production-ready Node.js backend project with **Express**, **MongoDB**, **Signal SMS OTP integration**, and environment-based configuration.  
 Designed to be scalable, modular, and easy to maintain.
@@ -59,7 +59,7 @@ speedu/
 
 This project is open source and available on GitHub:
 
-🔗 [Speedu Backend GitHub Repo](https://github.com/Nitinmalviy/speedu-backend)
+🔗 [speedu Backend GitHub Repo](https://github.com/Nitinmalviy/speedu-backend)
 
 ### Clone the repository
 

@@ -6,23 +6,23 @@ import { useEffect, useMemo, useState } from "react";
   export function useHomeCareApp() {
     const [view, setView] = useState("home");
     const [authMode, setAuthMode] = useState("login");
-    const [role, setRole] = useState(read("speedu_role", "customer"));
+    const [role, setRole] = useState(read("HomeCare_role", "customer"));
     const [mobile, setMobile] = useState("");
-    const [token, setToken] = useState(read("speedu_access_token"));
-    const [refreshToken, setRefreshToken] = useState(read("speedu_refresh_token"));
-    const [adminToken, setAdminToken] = useState(read("speedu_admin_access_token"));
-    const [adminEmail, setAdminEmail] = useState(read("speedu_admin_email"));
-    const [userId, setUserId] = useState(read("speedu_user_id"));
-    const [profileId, setProfileId] = useState(read("speedu_profile_id"));
-    const [profileType, setProfileType] = useState(read("speedu_profile_type"));
-    const [userName, setUserName] = useState(read("speedu_user_name", ""));
+    const [token, setToken] = useState(read("HomeCare_access_token"));
+    const [refreshToken, setRefreshToken] = useState(read("HomeCare_refresh_token"));
+    const [adminToken, setAdminToken] = useState(read("HomeCare_admin_access_token"));
+    const [adminEmail, setAdminEmail] = useState(read("HomeCare_admin_email"));
+    const [userId, setUserId] = useState(read("HomeCare_user_id"));
+    const [profileId, setProfileId] = useState(read("HomeCare_profile_id"));
+    const [profileType, setProfileType] = useState(read("HomeCare_profile_type"));
+    const [userName, setUserName] = useState(read("HomeCare_user_name", ""));
     const [userInfo, setUserInfo] = useState(() => {
-      try { return JSON.parse(localStorage.getItem("speedu_user_info") || "null") || null; }
+      try { return JSON.parse(localStorage.getItem("HomeCare_user_info") || "null") || null; }
       catch { return null; }
     });
     const [isUpdateProfile, setIsUpdateProfile] = useState(false);
     const [addresses, setAddresses] = useState(() => {
-      try { return JSON.parse(localStorage.getItem("speedu_addresses") || "[]"); }
+      try { return JSON.parse(localStorage.getItem("HomeCare_addresses") || "[]"); }
       catch { return []; }
     });
     const [services, setServices] = useState([]);
@@ -83,41 +83,41 @@ import { useEffect, useMemo, useState } from "react";
       const nextRole = data.role || role;
       const nextUserId = data.userId || payload.userId || payload.id || "";
       setToken(nextToken); setRefreshToken(nextRefresh); setRole(nextRole); setUserId(nextUserId);
-      localStorage.setItem("speedu_access_token", nextToken);
-      localStorage.setItem("speedu_refresh_token", nextRefresh);
-      localStorage.setItem("speedu_role", nextRole);
-      localStorage.setItem("speedu_user_id", nextUserId);
+      localStorage.setItem("HomeCare_access_token", nextToken);
+      localStorage.setItem("HomeCare_refresh_token", nextRefresh);
+      localStorage.setItem("HomeCare_role", nextRole);
+      localStorage.setItem("HomeCare_user_id", nextUserId);
     }
 
     function saveProfile(id, type, profileData) {
       setProfileId(id || ""); setProfileType(type || "");
-      localStorage.setItem("speedu_profile_id", id || "");
-      localStorage.setItem("speedu_profile_type", type || "");
+      localStorage.setItem("HomeCare_profile_id", id || "");
+      localStorage.setItem("HomeCare_profile_type", type || "");
       if (profileData) {
         const name = profileData.fullName || "";
         setUserName(name); setUserInfo(profileData);
-        localStorage.setItem("speedu_user_name", name);
-        localStorage.setItem("speedu_user_info", JSON.stringify(profileData));
+        localStorage.setItem("HomeCare_user_name", name);
+        localStorage.setItem("HomeCare_user_info", JSON.stringify(profileData));
       }
     }
 
     function saveAddresses(nextAddresses) {
       const clean = nextAddresses || [];
       setAddresses(clean);
-      localStorage.setItem("speedu_addresses", JSON.stringify(clean));
+      localStorage.setItem("HomeCare_addresses", JSON.stringify(clean));
     }
 
     function logout() {
-      ["speedu_access_token","speedu_refresh_token","speedu_role","speedu_mobile",
-       "speedu_user_id","speedu_profile_id","speedu_profile_type","speedu_addresses",
-       "speedu_user_name","speedu_user_info"].forEach((k) => localStorage.removeItem(k));
+      ["HomeCare_access_token","HomeCare_refresh_token","HomeCare_role","HomeCare_mobile",
+       "HomeCare_user_id","HomeCare_profile_id","HomeCare_profile_type","HomeCare_addresses",
+       "HomeCare_user_name","HomeCare_user_info"].forEach((k) => localStorage.removeItem(k));
       location.reload();
     }
 
     function logoutAdmin() {
-      localStorage.removeItem("speedu_admin_access_token");
-      localStorage.removeItem("speedu_admin_refresh_token");
-      localStorage.removeItem("speedu_admin_email");
+      localStorage.removeItem("HomeCare_admin_access_token");
+      localStorage.removeItem("HomeCare_admin_refresh_token");
+      localStorage.removeItem("HomeCare_admin_email");
       setAdminToken(""); setAdminEmail(""); setView("home");
     }
 
@@ -316,8 +316,8 @@ import { useEffect, useMemo, useState } from "react";
 
       const nextMobile = form.get("mobile").trim();
       setMobile(nextMobile); setRole(nextRole);
-      localStorage.setItem("speedu_mobile", nextMobile);
-      localStorage.setItem("speedu_role", nextRole);
+      localStorage.setItem("HomeCare_mobile", nextMobile);
+      localStorage.setItem("HomeCare_role", nextRole);
       try {
         setLoading(true);
         const result = await api(`/auth/${authMode}`, { method: "POST", body: JSON.stringify({ mobile: nextMobile, role: nextRole }) });
@@ -335,9 +335,9 @@ import { useEffect, useMemo, useState } from "react";
         const result = await api("/admin/login", { method: "POST", body: JSON.stringify({ email, password }) });
         const data = result.data || {};
         setAdminToken(data.accessToken || ""); setAdminEmail(data.email || email);
-        localStorage.setItem("speedu_admin_access_token", data.accessToken || "");
-        localStorage.setItem("speedu_admin_refresh_token", data.refreshToken || "");
-        localStorage.setItem("speedu_admin_email", data.email || email);
+        localStorage.setItem("HomeCare_admin_access_token", data.accessToken || "");
+        localStorage.setItem("HomeCare_admin_refresh_token", data.refreshToken || "");
+        localStorage.setItem("HomeCare_admin_email", data.email || email);
         setView("admin"); await loadAdminData(data.accessToken); flash("Admin login successful.");
       } catch (err) { flash(err.message, "error"); } finally { setLoading(false); }
     }

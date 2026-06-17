@@ -1,4 +1,4 @@
-// Speedu Service Seed Script
+// HomeCare Service Seed Script
   // ES Module version — Node 22+ compatible
   // Run: node seed.mjs
   //
@@ -215,7 +215,7 @@
     return data;
   }
 
-  console.log("\nSpeedu Seed Script");
+  console.log("\nHomeCare Seed Script");
   console.log("===================");
 
   // 1. Login
