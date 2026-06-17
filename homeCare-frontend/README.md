@@ -1,12 +1,18 @@
-# Speedu Frontend
+# HomeCare Frontend
 
-Vite React frontend for the Speedu customer and agent service booking app.
+Vite React frontend for the HomeCare customer and agent service booking app.
 
 ## Setup
 
 ```bash
 npm install
 npm run dev
+```
+
+PowerShell execution policy agar `npm` ko block kare, to Windows par ye command use karo:
+
+```bash
+npm.cmd run dev
 ```
 
 Open:
@@ -26,24 +32,22 @@ VITE_API_BASE_URL=http://localhost:8000/api
 For deploy:
 
 ```env
-VITE_API_BASE_URL=https://your-backend-domain.com/api
+VITE_API_BASE_URL=https://homecare-1-ftut.onrender.com/api
 ```
 
 ## Deploy (Render / static host)
 
-**GitHub repo root:** `Speedu/speedu-frontend` (folder `Speedu` ke andar)
-
 | Setting | Value |
 |--------|--------|
-| Root Directory | `Speedu/speedu-frontend` |
+| Root Directory | `homeCare-frontend` |
 | Build Command | `npm install && npm run build` |
 | Publish Directory | `dist` |
 | Node | 20+ |
 
-**Environment variable (build time — zaroori):**
+**Environment variable (build time - zaroori):**
 
 ```env
-VITE_API_BASE_URL=https://speedu-backend-0xid.onrender.com/api
+VITE_API_BASE_URL=https://homecare-1-ftut.onrender.com/api
 ```
 
 Bina `VITE_API_BASE_URL` ke bhi default backend URL code me set hai; production par env variable set karna behtar hai.

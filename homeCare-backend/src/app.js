@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use(
     cors({
-        origin: "https://home-care-ujqy.vercel.app/",
+        origin: process.env.FRONTEND_URL || "*",
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         exposedHeaders: ["Content-Type", "Authorization"],

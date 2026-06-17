@@ -1,2 +1,5 @@
-export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "https://speedu-backend-0xid.onrender.com/api";
+const rawApiBase =
+  import.meta.env.VITE_API_BASE_URL || "https://homecare-1-ftut.onrender.com/api";
+
+export const API_BASE = rawApiBase.replace(/\/+$/, "");
+export const API_ORIGIN = API_BASE.replace(/\/api$/, "");
