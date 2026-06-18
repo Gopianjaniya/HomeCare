@@ -1,4 +1,5 @@
 const userRoutes = require("express").Router();
+console.log("User routes loaded");
 const userController = require("../controllers/user.controller");
 // const { authenticate } = require("../middleware/auth.middleware");
 
