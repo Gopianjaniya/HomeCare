@@ -6,11 +6,6 @@ const { generateOtp } = require("../utils/common.utils");
 const logger = require("../utils/logger");
 const { sendOtpSms } = require("../utils/sms.utils");
 
-const shouldExposeOtp = (sms) =>
-    process.env.NODE_ENV !== "production" ||
-    process.env.ALLOW_MOCK_OTP === "true" ||
-    sms?.sent === false;
-
 /*
 Signup API - Only mobile and role required
 Generates static OTP and returns it in response
@@ -66,10 +61,10 @@ exports.signup = async(req, res) => {
             isProfileCompleted: false,
         });
 
-        const sms = await sendOtpSms(formattedMobile, otp);
+        await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp(sms)) {
+        if (process.env.NODE_ENV !== "production") {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}`);
@@ -81,9 +76,8 @@ exports.signup = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Return OTP when SMS is unavailable, so deployed demo remains usable.
-                ...(shouldExposeOtp(sms) && { otp }),
-                sms,
+                // | Only return OTP in development mode
+                ...(process.env.NODE_ENV !== "production" && { otp }),
             },
         });
     } catch (error) {
@@ -150,10 +144,10 @@ exports.login = async(req, res) => {
         const otp = generateOtp(6);
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
         await UserModel.updateOne({ mobile: formattedMobile }, { otp, otpExpiry });
-        const sms = await sendOtpSms(formattedMobile, otp);
+        await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp(sms)) {
+        if (process.env.NODE_ENV !== "production") {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}`);
@@ -165,9 +159,8 @@ exports.login = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Return OTP when SMS is unavailable, so deployed demo remains usable.
-                ...(shouldExposeOtp(sms) && { otp }),
-                sms,
+                // | Only return OTP in development mode
+                ...(process.env.NODE_ENV !== "production" && { otp }),
             },
         });
     } catch (error) {
@@ -226,9 +219,9 @@ exports.resendOtp = async(req, res) => {
         const otp = generateOtp(6);
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
         await UserModel.updateOne({ _id: user._id }, { otp, otpExpiry });
-        const sms = await sendOtpSms(formattedMobile, otp);
+        await sendOtpSms(formattedMobile, otp);
 
-        if (shouldExposeOtp(sms)) {
+        if (process.env.NODE_ENV !== "production") {
             logger.info(`OTP resent for user: ${user._id}, OTP: ${otp}`);
         } else {
             logger.info(`OTP resent for user: ${user._id}`);
@@ -240,8 +233,7 @@ exports.resendOtp = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                ...(shouldExposeOtp(sms) && { otp }),
-                sms,
+                ...(process.env.NODE_ENV !== "production" && { otp }),
             },
         });
     } catch (error) {
