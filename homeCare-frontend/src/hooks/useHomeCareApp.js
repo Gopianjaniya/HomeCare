@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
   import { API_BASE } from "../config/api.js";
   import { read, normalizeName, sameName, titleCase } from "../lib/format.js";
@@ -51,19 +52,41 @@ import { useEffect, useMemo, useState } from "react";
     async function api(path, options = {}) {
       const headers = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success === false) throw new Error(data.message || "Request failed");
-      return data;
+
+      try {
+        const response = await axios({
+          url: `${API_BASE}${path}`,
+          method: options.method || "GET",
+          data: options.body,
+          headers: { ...headers, ...(options.headers || {}) },
+        });
+        const data = response.data || {};
+        if (data.success === false) throw new Error(data.message || "Request failed");
+        return data;
+      } catch (err) {
+        const data = err.response?.data;
+        throw new Error(data?.message || err.message || "Request failed");
+      }
     }
 
     async function adminApi(path, options = {}, tokenOverride = adminToken) {
       const headers = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
       if (tokenOverride) headers.Authorization = `Bearer ${tokenOverride}`;
-      const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success === false) throw new Error(data.message || "Admin request failed");
-      return data;
+
+      try {
+        const response = await axios({
+          url: `${API_BASE}${path}`,
+          method: options.method || "GET",
+          data: options.body,
+          headers: { ...headers, ...(options.headers || {}) },
+        });
+        const data = response.data || {};
+        if (data.success === false) throw new Error(data.message || "Admin request failed");
+        return data;
+      } catch (err) {
+        const data = err.response?.data;
+        throw new Error(data?.message || err.message || "Admin request failed");
+      }
     }
 
     function flash(text, type = "success") {
