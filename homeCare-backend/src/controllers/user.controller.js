@@ -6,8 +6,10 @@ const { generateOtp } = require("../utils/common.utils");
 const logger = require("../utils/logger");
 const { sendOtpSms } = require("../utils/sms.utils");
 
-const shouldExposeOtp = () =>
-    process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_OTP === "true";
+const shouldExposeOtp = (sms) =>
+    process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_MOCK_OTP === "true" ||
+    sms?.sent === false;
 
 /*
 Signup API - Only mobile and role required
@@ -67,7 +69,7 @@ exports.signup = async(req, res) => {
         const sms = await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp()) {
+        if (shouldExposeOtp(sms)) {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}`);
@@ -79,8 +81,8 @@ exports.signup = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Only return OTP in development or explicit demo mode
-                ...(shouldExposeOtp() && { otp }),
+                // | Return OTP when SMS is unavailable, so deployed demo remains usable.
+                ...(shouldExposeOtp(sms) && { otp }),
                 sms,
             },
         });
@@ -151,7 +153,7 @@ exports.login = async(req, res) => {
         const sms = await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp()) {
+        if (shouldExposeOtp(sms)) {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}`);
@@ -163,8 +165,8 @@ exports.login = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Only return OTP in development or explicit demo mode
-                ...(shouldExposeOtp() && { otp }),
+                // | Return OTP when SMS is unavailable, so deployed demo remains usable.
+                ...(shouldExposeOtp(sms) && { otp }),
                 sms,
             },
         });
@@ -226,7 +228,7 @@ exports.resendOtp = async(req, res) => {
         await UserModel.updateOne({ _id: user._id }, { otp, otpExpiry });
         const sms = await sendOtpSms(formattedMobile, otp);
 
-        if (shouldExposeOtp()) {
+        if (shouldExposeOtp(sms)) {
             logger.info(`OTP resent for user: ${user._id}, OTP: ${otp}`);
         } else {
             logger.info(`OTP resent for user: ${user._id}`);
@@ -238,7 +240,7 @@ exports.resendOtp = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                ...(shouldExposeOtp() && { otp }),
+                ...(shouldExposeOtp(sms) && { otp }),
                 sms,
             },
         });
