@@ -35,10 +35,6 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Static pages
-app.get("/test", (req, res) => {
-    res.json({ message: "new deployment working" });
-});
-
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
