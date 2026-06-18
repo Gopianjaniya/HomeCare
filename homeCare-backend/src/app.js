@@ -6,6 +6,10 @@ const compression = require("compression");
 const morgan = require("morgan");
 const router = require("./router");
 const app = express();
+const allowedOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 //   FIX: Use only express built-in JSON & urlencoded parsers (no body-parser needed)
 app.use(express.json({ limit: "10mb" }));
@@ -13,7 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use(
     cors({
-        origin: "*" || process.env.FRONTEND_URL,
+        origin: allowedOrigins.length ? allowedOrigins : "*",
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         exposedHeaders: ["Content-Type", "Authorization"],

@@ -12,10 +12,14 @@ async function sendOtpSms(mobile, otp) {
   }
 
   const fast2smsKey = process.env.FAST2SMS_API_KEY;
+  const allowMockOtp =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_MOCK_OTP === "true";
 
   if (!fast2smsKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("SMS provider is not configured");
+    if (!allowMockOtp) {
+      logger.warn("FAST2SMS_API_KEY is missing. OTP was generated but SMS was not sent.");
+      return { sent: false, provider: "none", reason: "missing_api_key" };
     }
 
     logger.info(`SMS mock: OTP ${otp} for +91${number}`);
