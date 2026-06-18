@@ -12,18 +12,9 @@ async function sendOtpSms(mobile, otp) {
   }
 
   const fast2smsKey = process.env.FAST2SMS_API_KEY;
-  const allowMockOtp =
-    process.env.NODE_ENV !== "production" ||
-    process.env.ALLOW_MOCK_OTP === "true";
-
   if (!fast2smsKey) {
-    if (!allowMockOtp) {
-      logger.warn("FAST2SMS_API_KEY is missing. OTP was generated but SMS was not sent.");
-      return { sent: false, provider: "none", reason: "missing_api_key" };
-    }
-
-    logger.info(`SMS mock: OTP ${otp} for +91${number}`);
-    return { sent: false, provider: "mock" };
+    logger.warn("FAST2SMS_API_KEY is missing. OTP was generated but SMS was not sent.");
+    return { sent: false, provider: "none", reason: "missing_api_key" };
   }
 
   const params = new URLSearchParams({
@@ -32,21 +23,27 @@ async function sendOtpSms(mobile, otp) {
     numbers: number,
   });
 
-  const response = await fetch(`https://www.fast2sms.com/dev/bulkV2?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      authorization: fast2smsKey,
-      accept: "application/json",
-    },
-  });
+  try {
+    const response = await fetch(`https://www.fast2sms.com/dev/bulkV2?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        authorization: fast2smsKey,
+        accept: "application/json",
+      },
+    });
 
-  const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-  if (!response.ok || data.return === false) {
-    throw new Error(data.message || "Failed to send OTP SMS");
+    if (!response.ok || data.return === false) {
+      logger.warn(`Fast2SMS failed: ${data.message || response.statusText}`);
+      return { sent: false, provider: "fast2sms", reason: data.message || "failed" };
+    }
+
+    return { sent: true, provider: "fast2sms", data };
+  } catch (error) {
+    logger.warn(`Fast2SMS request failed: ${error.message}`);
+    return { sent: false, provider: "fast2sms", reason: "request_failed" };
   }
-
-  return { sent: true, provider: "fast2sms", data };
 }
 
 module.exports = { sendOtpSms };

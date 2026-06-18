@@ -57,7 +57,7 @@ FRONTEND_URL=https://your-frontend-domain.onrender.com
 Demo/testing deployment me agar SMS provider nahi lagana hai, tab:
 
 ```env
-ALLOW_MOCK_OTP=true
+FAST2SMS_API_KEY=
 ```
 
-Is mode me OTP API response me aayega, jise frontend hint ki tarah dikha sakta hai.
+Is mode me OTP API response me aayega, jise frontend screen par dikha dega. Agar SMS provider configured hai aur phir bhi OTP response me chahiye, tab `ALLOW_MOCK_OTP=true` set karo.
