@@ -56,52 +56,7 @@ export function Agent({
         </Card>
       </div>
 
-      {/* <div className="mb-8 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <Card>
-          <h3 className="text-lg font-bold text-slate-900">Create service</h3>
-          <form className="mt-4 grid gap-4" onSubmit={createAgentService}>
-            <Field label="Service name">
-              <input name="categoryName" placeholder="e.g. Electrician" maxLength="60" required />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Variant name">
-                <input name="variantName" placeholder="Fan repair" maxLength="80" required />
-              </Field>
-              <Field label="Price (Rs)">
-                <input type="number" name="variantPrice" min="1" step="1" placeholder="199" required />
-              </Field>
-            </div>
-            <Button variant="primary" disabled={loading} type="submit">
-              Submit for approval
-            </Button>
-          </form>
-        </Card>
-
-        <Card>
-          <h3 className="text-lg font-bold text-slate-900">My services</h3>
-          <div className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1">
-            {services.length ? (
-              services.map((service) => (
-                <div key={service._id} className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <strong className="text-slate-900">{titleCase(service.categoryName || "Service")}</strong>
-                    <span className={statusPillClass(service.approvalStatus || "PENDING")}>{service.approvalStatus || "PENDING"}</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {service.variants?.map((variant) => (
-                      <span key={variant._id} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600">
-                        {variant.variantName} - {money(variant.variantPrice)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-500">No services created yet.</div>
-            )}
-          </div>
-        </Card>
-      </div> */}
+      
 
       <h3 className="mb-4 text-lg font-bold text-slate-900">Repair income history</h3>
       <div className="mb-8 grid gap-3">

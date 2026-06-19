@@ -30,7 +30,7 @@ import { Field } from "../ui/Field.jsx";
 const navItems = [
   { id: "bookings", label: "All Bookings", icon: ClipboardList },
   { id: "services", label: "Services Management", icon: Wrench },
-  // { id: "agents", label: "Agents", icon: UserCog },
+
   { id: "customers", label: "Customers", icon: Users },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
 ];
@@ -707,38 +707,6 @@ export function Admin({
         </section>
 
         <section className="mt-8 grid gap-5 xl:grid-cols-2 ">
-          {/* <Card
-            id="admin-agents"
-            className="scroll-mt-32 rounded-xl border-orange-100"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase text-orange-600">
-                  Agents / Service Providers
-                </p>
-                <h2 className="mt-1 text-lg font-bold text-slate-900">
-                  {uniqueAgents} providers
-                </h2>
-              </div>
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-orange-50 text-orange-700">
-                <BriefcaseBusiness className="h-5 w-5" />
-              </span>
-            </div>
-            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto pr-1 ">
-              {agents.length ? (
-                agents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))
-              ) : (
-                <EmptyPanel
-                  icon={<BriefcaseBusiness className="h-5 w-5" />}
-                  title="No agents found"
-                  description="Agent details services se generate hote hain. Jab provider service submit karega to yahan naam, category aur rate dikhega."
-                />
-              )}
-            </div>
-          </Card> */}
-
           <Card
             id="admin-customers"
             className="scroll-mt-32 rounded-xl border-orange-100"
