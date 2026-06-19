@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: homecare-backend
+    runtime: node
+    rootDir: homeCare-backend
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: HomeCare
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_REFRESH_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: FAST2SMS_API_KEY
+        sync: false
+
+  - type: web
+    name: homecare-frontend
+    runtime: static
+    rootDir: homeCare-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://homecare-1-ftut.onrender.com/api

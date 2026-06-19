@@ -61,7 +61,7 @@ exports.signup = async(req, res) => {
             isProfileCompleted: false,
         });
 
-        await sendOtpSms(formattedMobile, otp);
+        // await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
         if (process.env.NODE_ENV !== "production") {

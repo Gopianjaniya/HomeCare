@@ -16,12 +16,10 @@ const logger = {
 
     error: (message, error = null) => {
         if (!isTest) {
-            const meta = error ?
-                {
-                    error: error.message,
-                    stack: isDevelopment ? error.stack : undefined,
-                } :
-                {};
+            const meta = error ? {
+                error: error.message,
+                stack: isDevelopment ? error.stack : undefined,
+            } : {};
             console.error(formatMessage("ERROR", message, meta));
         }
     },

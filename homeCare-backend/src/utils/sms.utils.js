@@ -1,47 +1,47 @@
 const logger = require("./logger");
 
 function cleanIndianMobile(mobile = "") {
-  return String(mobile || "").replace(/^\+91/, "").replace(/^91/, "").replace(/\D/g, "");
+    return String(mobile || "").replace(/^\+91/, "").replace(/^91/, "").replace(/\D/g, "");
 }
 
 async function sendOtpSms(mobile, otp) {
-  const number = cleanIndianMobile(mobile);
+    const number = cleanIndianMobile(mobile);
 
-  if (!/^[6-9]\d{9}$/.test(number)) {
-    throw new Error("Invalid mobile number for SMS");
-  }
-
-  const fast2smsKey = process.env.FAST2SMS_API_KEY;
-  if (!fast2smsKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("SMS provider is not configured");
+    if (!/^[6-9]\d{9}$/.test(number)) {
+        throw new Error("Invalid mobile number for SMS");
     }
 
-    logger.info(`SMS mock: OTP ${otp} for +91${number}`);
-    return { sent: false, provider: "mock" };
-  }
+    const fast2smsKey = process.env.FAST2SMS_API_KEY;
+    if (!fast2smsKey) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("SMS provider is not configured");
+        }
 
-  const params = new URLSearchParams({
-    route: "otp",
-    variables_values: String(otp),
-    numbers: number,
-  });
+        logger.info(`SMS mock: OTP ${otp} for +91${number}`);
+        return { sent: false, provider: "mock" };
+    }
 
-  const response = await fetch(`https://www.fast2sms.com/dev/bulkV2?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      authorization: fast2smsKey,
-      accept: "application/json",
-    },
-  });
+    const params = new URLSearchParams({
+        route: "otp",
+        variables_values: String(otp),
+        numbers: number,
+    });
 
-  const data = await response.json().catch(() => ({}));
+    const response = await fetch(`https://www.fast2sms.com/dev/bulkV2?${params.toString()}`, {
+        method: "GET",
+        headers: {
+            authorization: fast2smsKey,
+            accept: "application/json",
+        },
+    });
 
-  if (!response.ok || data.return === false) {
-    throw new Error(data.message || "Failed to send OTP SMS");
-  }
+    const data = await response.json().catch(() => ({}));
 
-  return { sent: true, provider: "fast2sms", data };
+    if (!response.ok || data.return === false) {
+        throw new Error(data.message || "Failed to send OTP SMS");
+    }
+
+    return { sent: true, provider: "fast2sms", data };
 }
 
 module.exports = { sendOtpSms };

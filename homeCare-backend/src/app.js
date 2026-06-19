@@ -13,6 +13,22 @@ const allowedOrigins = [
     .map((origin) => origin.trim())
     .filter(Boolean),
 ];
+function isAllowedOrigin(origin) {
+    if (!origin) {
+        return true;
+    }
+
+    if (allowedOrigins.includes(origin)) {
+        return true;
+    }
+
+    try {
+        const { hostname } = new URL(origin);
+        return hostname.endsWith(".onrender.com") && hostname.startsWith("homecare-");
+    } catch {
+        return false;
+    }
+}
 
 //   FIX: Use only express built-in JSON & urlencoded parsers (no body-parser needed)
 app.use(express.json({ limit: "10mb" }));
@@ -21,7 +37,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(
     cors({
         origin: function(origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
+            if (isAllowedOrigin(origin)) {
                 callback(null, true);
             } else {
                 callback(new Error("CORS not allowed"));
