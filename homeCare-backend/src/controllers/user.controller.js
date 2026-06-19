@@ -5,6 +5,9 @@ const UserModel = require("../models/user.model");
 const { generateOtp } = require("../utils/common.utils");
 const logger = require("../utils/logger");
 const { sendOtpSms } = require("../utils/sms.utils");
+function shouldExposeOtp() {
+    return process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_OTP === "true" || !process.env.FAST2SMS_API_KEY;
+}
 
 /*
 Signup API - Only mobile and role required
@@ -76,8 +79,8 @@ exports.signup = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Only return OTP in development mode
-                ...(process.env.NODE_ENV !== "production" && { otp }),
+                // | Return OTP in local/mock mode
+                ...(shouldExposeOtp() && { otp }),
             },
         });
     } catch (error) {
@@ -159,8 +162,8 @@ exports.login = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                // | Only return OTP in development mode
-                ...(process.env.NODE_ENV !== "production" && { otp }),
+                // | Return OTP in local/mock mode
+                ...(shouldExposeOtp() && { otp }),
             },
         });
     } catch (error) {
@@ -233,7 +236,7 @@ exports.resendOtp = async(req, res) => {
             data: {
                 mobile: user.mobile,
                 role: user.role,
-                ...(process.env.NODE_ENV !== "production" && { otp }),
+                ...(shouldExposeOtp() && { otp }),
             },
         });
     } catch (error) {

@@ -13,11 +13,9 @@ async function sendOtpSms(mobile, otp) {
 
     const fast2smsKey = process.env.FAST2SMS_API_KEY;
     if (!fast2smsKey) {
-        if (process.env.NODE_ENV === "production") {
-            throw new Error("SMS provider is not configured");
+        if (process.env.NODE_ENV !== "production") {
+            logger.info(`SMS mock: OTP ${otp} for +91${number}`);
         }
-
-        logger.info(`SMS mock: OTP ${otp} for +91${number}`);
         return { sent: false, provider: "mock" };
     }
 

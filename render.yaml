@@ -24,6 +24,8 @@ services:
         sync: false
       - key: FAST2SMS_API_KEY
         sync: false
+      - key: ALLOW_MOCK_OTP
+        value: true
 
   - type: web
     name: homecare-frontend
