@@ -56,7 +56,7 @@ export function Agent({
         </Card>
       </div>
 
-      <div className="mb-8 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      {/* <div className="mb-8 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <Card>
           <h3 className="text-lg font-bold text-slate-900">Create service</h3>
           <form className="mt-4 grid gap-4" onSubmit={createAgentService}>
@@ -101,7 +101,7 @@ export function Agent({
             )}
           </div>
         </Card>
-      </div>
+      </div> */}
 
       <h3 className="mb-4 text-lg font-bold text-slate-900">Repair income history</h3>
       <div className="mb-8 grid gap-3">

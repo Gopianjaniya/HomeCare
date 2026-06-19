@@ -30,7 +30,7 @@ import { Field } from "../ui/Field.jsx";
 const navItems = [
   { id: "bookings", label: "All Bookings", icon: ClipboardList },
   { id: "services", label: "Services Management", icon: Wrench },
-  { id: "agents", label: "Agents", icon: UserCog },
+  // { id: "agents", label: "Agents", icon: UserCog },
   { id: "customers", label: "Customers", icon: Users },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
 ];
@@ -302,9 +302,9 @@ export function Admin({
   const notificationCount =
     bookingCounts.pending +
     services.filter((service) => service.approvalStatus === "PENDING").length;
-  const agents = useMemo(() => summarizeAgents(services), [services]);
+  // const agents = useMemo(() => summarizeAgents(services), [services]);
   const customers = useMemo(() => summarizeCustomers(bookings), [bookings]);
-  const uniqueAgents = agents.length;
+  // const uniqueAgents = agents.length;
   const uniqueCustomers = customers.length;
 
   const jumpTo = (sectionId) => {
@@ -706,8 +706,8 @@ export function Admin({
           </Card>
         </section>
 
-        <section className="mt-8 grid gap-5 xl:grid-cols-2">
-          <Card
+        <section className="mt-8 grid gap-5 xl:grid-cols-2 ">
+          {/* <Card
             id="admin-agents"
             className="scroll-mt-32 rounded-xl border-orange-100"
           >
@@ -724,7 +724,7 @@ export function Admin({
                 <BriefcaseBusiness className="h-5 w-5" />
               </span>
             </div>
-            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto pr-1">
+            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto pr-1 ">
               {agents.length ? (
                 agents.map((agent) => (
                   <AgentCard key={agent.id} agent={agent} />
@@ -737,7 +737,7 @@ export function Admin({
                 />
               )}
             </div>
-          </Card>
+          </Card> */}
 
           <Card
             id="admin-customers"
