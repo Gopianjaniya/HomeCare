@@ -9,12 +9,15 @@ const logger = require("./src/utils/logger");
 const port = process.env.PORT || 8000;
 
 async function startServer() {
-  await connectDB();
-  await autoSeedServices();
-  app.listen(port, () => {
-    logger.info(`[SERVER] Server is running on http://localhost:${port}`);
-    logger.info(`[SERVER] Server is running on http://${getLocalIP()}:${port}`);
-  });
+    await connectDB();
+    await autoSeedServices();
+    app.listen(port, () => {
+        logger.info(`[SERVER] Server is running on http://localhost:${port}`);
+        logger.info(`[SERVER] Server is running on http://${getLocalIP()}:${port}`);
+    });
 }
 
-startServer();
+startServer().catch((error) => {
+    logger.error("[SERVER] Startup failed", error);
+    process.exit(1);
+});

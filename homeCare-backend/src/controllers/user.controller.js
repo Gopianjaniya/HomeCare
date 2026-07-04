@@ -4,9 +4,18 @@ const CustomerModel = require("../models/customer.model");
 const UserModel = require("../models/user.model");
 const { generateOtp } = require("../utils/common.utils");
 const logger = require("../utils/logger");
-const { sendOtpSms } = require("../utils/sms.utils");
+const { sendOtpSms, resendOtpSms, verifyTwilioOtp, isSmsProviderConfigured } = require("../utils/sms.utils");
 function shouldExposeOtp() {
-    return process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_OTP === "true" || !process.env.FAST2SMS_API_KEY;
+    return process.env.ALLOW_MOCK_OTP === "true" || !isSmsProviderConfigured();
+}
+
+function sendAuthError(res, error, fallbackMessage = "Internal server error") {
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+        success: false,
+        message: statusCode >= 500 ? fallbackMessage : error.message,
+        error: error.message,
+    });
 }
 
 /*
@@ -42,12 +51,12 @@ exports.signup = async(req, res) => {
         }
 
         const formattedMobile = `+91${mobile}`;
-        const isExist = await UserModel.findOne({ mobile: formattedMobile });
+        const isExist = await UserModel.findOne({ mobile: formattedMobile, role });
 
         if (isExist) {
             return res.status(409).json({
                 success: false,
-                message: "User already exists with this mobile number",
+                message: "User already exists with this mobile number and role",
             });
         }
 
@@ -56,18 +65,22 @@ exports.signup = async(req, res) => {
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
         // Create new user with OTP
-        const user = await UserModel.create({
+        let user = await UserModel.create({
             mobile: formattedMobile,
             role,
             otp,
             otpExpiry,
             isProfileCompleted: false,
         });
-
-        // await sendOtpSms(formattedMobile, otp);
+        try {
+            await sendOtpSms(formattedMobile, otp);
+        } catch (error) {
+            await UserModel.deleteOne({ _id: user._id });
+            throw error;
+        }
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (process.env.NODE_ENV !== "production") {
+        if (shouldExposeOtp()) {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}`);
@@ -85,11 +98,7 @@ exports.signup = async(req, res) => {
         });
     } catch (error) {
         logger.error(`[Error] while sign-up: ${error.message}`);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+        return sendAuthError(res, error);
     }
 };
 
@@ -126,7 +135,7 @@ exports.login = async(req, res) => {
         }
 
         const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile });
+        const user = await UserModel.findOne({ mobile: formattedMobile, role });
 
         if (!user) {
             return res.status(404).json({
@@ -146,11 +155,11 @@ exports.login = async(req, res) => {
         // Generate new OTP with 5-minute expiry
         const otp = generateOtp(6);
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-        await UserModel.updateOne({ mobile: formattedMobile }, { otp, otpExpiry });
+        await UserModel.updateOne({ mobile: formattedMobile, role }, { otp, otpExpiry });
         await sendOtpSms(formattedMobile, otp);
 
         // | FIX: Production me OTP log nahi karna chahiye
-        if (process.env.NODE_ENV !== "production") {
+        if (shouldExposeOtp()) {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
         } else {
             logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}`);
@@ -168,11 +177,7 @@ exports.login = async(req, res) => {
         });
     } catch (error) {
         logger.error(`[Error] while login: ${error.message}`);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+        return sendAuthError(res, error);
     }
 };
 
@@ -203,7 +208,7 @@ exports.resendOtp = async(req, res) => {
         }
 
         const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile });
+        const user = await UserModel.findOne({ mobile: formattedMobile, role });
 
         if (!user) {
             return res.status(404).json({
@@ -222,9 +227,9 @@ exports.resendOtp = async(req, res) => {
         const otp = generateOtp(6);
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
         await UserModel.updateOne({ _id: user._id }, { otp, otpExpiry });
-        await sendOtpSms(formattedMobile, otp);
+        await resendOtpSms(formattedMobile, otp);
 
-        if (process.env.NODE_ENV !== "production") {
+        if (shouldExposeOtp()) {
             logger.info(`OTP resent for user: ${user._id}, OTP: ${otp}`);
         } else {
             logger.info(`OTP resent for user: ${user._id}`);
@@ -241,11 +246,7 @@ exports.resendOtp = async(req, res) => {
         });
     } catch (error) {
         logger.error(`[Error] while resending OTP: ${error.message}`);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+        return sendAuthError(res, error);
     }
 };
 
@@ -272,7 +273,7 @@ exports.verifyOtp = async(req, res) => {
         }
 
         const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile });
+        const user = await UserModel.findOne({ mobile: formattedMobile, role });
 
         if (!user) {
             return res.status(404).json({
@@ -289,7 +290,7 @@ exports.verifyOtp = async(req, res) => {
             });
         }
 
-        // | FIX: OTP expiry check — 5 minutes ke baad invalid
+        // | FIX: OTP expiry check - 5 minutes ke baad invalid
         if (user.otpExpiry && new Date() > new Date(user.otpExpiry)) {
             return res.status(401).json({
                 success: false,
@@ -297,8 +298,9 @@ exports.verifyOtp = async(req, res) => {
             });
         }
 
-        // Verify OTP value
-        if (user.otp !== otp) {
+        if (isSmsProviderConfigured()) {
+            await verifyTwilioOtp(formattedMobile, otp);
+        } else if (user.otp !== otp) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid OTP. Please check and try again.",
@@ -359,10 +361,6 @@ exports.verifyOtp = async(req, res) => {
         });
     } catch (error) {
         logger.error(`Error in verify OTP: ${error.message}`);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+        return sendAuthError(res, error);
     }
 };

@@ -4,7 +4,6 @@ const userSchema = new mongoose.Schema({
     mobile: {
         type: String,
         required: true,
-        unique: true,
         match: /^(\+91|0)?[6789]\d{9}$/,
     },
     email: {
@@ -61,6 +60,8 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true,
 });
+
+userSchema.index({ mobile: 1, role: 1 }, { unique: true });
 
 const UserModel = mongoose.model("user", userSchema);
 module.exports = UserModel;

@@ -1,15 +1,28 @@
 const { default: mongoose } = require("mongoose");
 const dotenv = require("dotenv");
 const logger = require("../utils/logger");
+const UserModel = require("../models/user.model");
 dotenv.config();
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME || "HomeCare";
 let listenersRegistered = false;
 
+async function ensureUserIndexes() {
+  const indexes = await UserModel.collection.indexes();
+  const legacyMobileIndex = indexes.find((index) => index.name === "mobile_1" && index.unique);
+
+  if (legacyMobileIndex) {
+    await UserModel.collection.dropIndex("mobile_1");
+    logger.info("[DATABASE] Dropped legacy unique mobile index");
+  }
+
+  await UserModel.syncIndexes();
+}
+
 const connectDB = async () => {
   if (!MONGO_URI) {
     logger.error("[DATABASE] MONGO_URI not found in .env file");
-    process.exit(1);
+    throw new Error("MONGO_URI not found in .env file");
   }
 
   try {
@@ -38,12 +51,11 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
+    await ensureUserIndexes();
   } catch (error) {
     logger.error("[DATABASE] Connection Failed", error);
-    setTimeout(connectDB, 5000);
+    throw error;
   }
 };
 
 module.exports = connectDB;
-
-
