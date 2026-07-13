@@ -54,7 +54,13 @@ async function sendVerificationEmail({ email, code }) {
 
         return true;
     } catch (error) {
-        throw deliveryError("Email delivery failed.", error);
+        console.error("============== SMTP ERROR ==============");
+        console.error(error);
+        console.error("Code:", error.code);
+        console.error("Response:", error.response);
+        console.error("Command:", error.command);
+
+        throw error;
     }
 }
 
