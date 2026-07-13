@@ -51,17 +51,13 @@ Local MongoDB chal raha ho to backend startup par ye log aayega:
 
 ## Deploy Notes
 
-Render/backend deploy par Node 20+ use karo. Email OTP ke liye SMTP configure karo:
+Render free web services cannot connect to SMTP ports 25, 465, or 587. For a free Render deployment, use the Resend HTTPS API instead of Gmail SMTP:
 
 ```env
 NODE_ENV=production
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-16-character-app-password
-SMTP_SECURE=false
-MAIL_FROM="HomeCare <your-email@gmail.com>"
+RESEND_API_KEY=re_your_resend_api_key
+MAIL_FROM="HomeCare <verified-sender@your-domain.com>"
 FRONTEND_URL=https://your-frontend-domain.onrender.com
 ```
 
-Gmail use kar rahe ho to normal account password ke bajay Google App Password use karo. OTP API response me return nahi hota; woh sirf entered email address par bheja jata hai.
+Add `RESEND_API_KEY` and `MAIL_FROM` to the Render service's Environment settings, and verify the sender domain in Resend. SMTP remains supported for local development or a paid Render instance. OTP API response me return nahi hota; woh sirf entered email address par bheja jata hai.

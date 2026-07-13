@@ -1,79 +1,81 @@
 const nodemailer = require("nodemailer");
 
-function getTransport() {
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+function emailMessage({ email, code }) {
+  return {
+    from: process.env.MAIL_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: "Your HomeCare verification code",
+    text: `Your HomeCare verification code is ${code}. It expires in 15 minutes. Do not share this code.`,
+    html: `
+      <p>Your HomeCare verification code is:</p>
+      <h2>${code}</h2>
+      <p>It expires in 15 minutes. Do not share this code.</p>
+    `,
+  };
+}
 
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-        throw Object.assign(
-            new Error("Email delivery is not configured. Set SMTP_HOST, SMTP_USER and SMTP_PASS."), { statusCode: 503 }
-        );
-    }
+function deliveryError(message, cause) {
+  return Object.assign(new Error(message), { statusCode: 503, cause });
+}
 
-    return nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-            user: SMTP_USER,
-            pass: SMTP_PASS,
-        },
-        logger: true,
-        debug: true,
+async function sendWithResend(message) {
+  if (!process.env.RESEND_API_KEY) return false;
+  if (!process.env.MAIL_FROM) {
+    throw deliveryError("Email delivery is not configured. Set MAIL_FROM for the Resend sender.");
+  }
+
+  let response;
+  try {
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(message),
+      signal: AbortSignal.timeout(10_000),
     });
+  } catch (error) {
+    throw deliveryError("Email provider could not be reached. Please try again.", error);
+  }
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw deliveryError(`Email provider rejected the request (${response.status}). ${details}`);
+  }
+
+  return true;
+}
+
+function getSmtpTransport() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    throw deliveryError("Email delivery is not configured. Set RESEND_API_KEY or SMTP settings.");
+  }
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  });
 }
 
 async function sendVerificationEmail({ email, code }) {
-    const transport = getTransport();
+  const message = emailMessage({ email, code });
+  if (await sendWithResend(message)) return;
 
-    const message = {
-        from: process.env.MAIL_FROM || process.env.SMTP_USER,
-        to: email,
-        subject: "Your HomeCare verification code",
-        text: `Your HomeCare verification code is ${code}. It expires in 15 minutes. Do not share this code.`,
-        html: `
-            <p>Your HomeCare verification code is:</p>
-            <h2>${code}</h2>
-            <p>It expires in 15 minutes. Do not share this code.</p>
-        `,
-    };
-
-    try {
-        console.log("Checking SMTP connection...");
-        console.log({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE,
-            user: process.env.SMTP_USER,
-        });
-        await transport.verify();
-
-        console.log("SMTP Connected Successfully");
-
-        const info = await transport.sendMail(message);
-
-        console.log("Email Sent Successfully");
-        console.log(info);
-
-        return info;
-
-    } catch (err) {
-
-        console.error("========== SMTP ERROR ==========");
-        console.error(err);
-        console.error("Message :", err.message);
-        console.error("Code :", err.code);
-        console.error("Command :", err.command);
-        console.error("Response :", err.response);
-        console.error("Stack :", err.stack);
-        console.error("================================");
-
-        throw err;
-
-    } finally {
-        transport.close();
-    }
+  const transport = getSmtpTransport();
+  try {
+    await transport.sendMail(message);
+  } catch (error) {
+    throw deliveryError("Email delivery failed. Please try again.", error);
+  } finally {
+    transport.close();
+  }
 }
 
-module.exports = {
-    sendVerificationEmail,
-};
+module.exports = { sendVerificationEmail };
