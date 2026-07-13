@@ -39,7 +39,12 @@ async function sendVerificationEmail({ email, code }) {
 
     try {
         console.log("Checking SMTP connection...");
-
+        console.log({
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            secure: process.env.SMTP_SECURE,
+            user: process.env.SMTP_USER,
+        });
         await transport.verify();
 
         console.log("SMTP Connected Successfully");
