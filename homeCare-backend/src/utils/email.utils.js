@@ -14,9 +14,13 @@ function deliveryError(message, cause) {
         cause,
     });
 }
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("EMAIL_USER:", process.env.SMTP_USER);
+console.log("EMAIL_PASS exists:", !!process.env.SMTP_PASS);
 
 async function sendVerificationEmail({ email, code }) {
     try {
+
         await transporter.sendMail({
             from: `"HomeCare" <${process.env.SMTP_USER}>`,
             to: email,
