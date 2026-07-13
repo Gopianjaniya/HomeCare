@@ -1,81 +1,59 @@
 const nodemailer = require("nodemailer");
 
-function emailMessage({ email, code }) {
-  return {
-    from: process.env.MAIL_FROM || process.env.SMTP_USER,
-    to: email,
-    subject: "Your HomeCare verification code",
-    text: `Your HomeCare verification code is ${code}. It expires in 15 minutes. Do not share this code.`,
-    html: `
-      <p>Your HomeCare verification code is:</p>
-      <h2>${code}</h2>
-      <p>It expires in 15 minutes. Do not share this code.</p>
-    `,
-  };
-}
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
 
 function deliveryError(message, cause) {
-  return Object.assign(new Error(message), { statusCode: 503, cause });
-}
-
-async function sendWithResend(message) {
-  if (!process.env.RESEND_API_KEY) return false;
-  if (!process.env.MAIL_FROM) {
-    throw deliveryError("Email delivery is not configured. Set MAIL_FROM for the Resend sender.");
-  }
-
-  let response;
-  try {
-    response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(message),
-      signal: AbortSignal.timeout(10_000),
+    return Object.assign(new Error(message), {
+        statusCode: 503,
+        cause,
     });
-  } catch (error) {
-    throw deliveryError("Email provider could not be reached. Please try again.", error);
-  }
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw deliveryError(`Email provider rejected the request (${response.status}). ${details}`);
-  }
-
-  return true;
-}
-
-function getSmtpTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    throw deliveryError("Email delivery is not configured. Set RESEND_API_KEY or SMTP settings.");
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
-  });
 }
 
 async function sendVerificationEmail({ email, code }) {
-  const message = emailMessage({ email, code });
-  if (await sendWithResend(message)) return;
+    try {
+        await transporter.sendMail({
+            from: `"HomeCare" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: "HomeCare Email Verification",
 
-  const transport = getSmtpTransport();
-  try {
-    await transport.sendMail(message);
-  } catch (error) {
-    throw deliveryError("Email delivery failed. Please try again.", error);
-  } finally {
-    transport.close();
-  }
+            text: `Your verification code is ${code}. This code is valid for 15 minutes.`,
+
+            html: `
+        <div style="font-family:Arial,sans-serif;padding:20px">
+          <h2>HomeCare</h2>
+
+          <p>Hello,</p>
+
+          <p>Your verification code is:</p>
+
+          <h1 style="letter-spacing:4px;color:#2563eb">
+            ${code}
+          </h1>
+
+          <p>This code will expire in <b>15 minutes</b>.</p>
+
+          <p>If you didn't request this code, you can ignore this email.</p>
+
+          <br>
+
+          <p>Thanks,</p>
+          <p><b>HomeCare Team</b></p>
+        </div>
+      `,
+        });
+
+        return true;
+    } catch (error) {
+        throw deliveryError("Email delivery failed.", error);
+    }
 }
 
-module.exports = { sendVerificationEmail };
+module.exports = {
+    sendVerificationEmail,
+};

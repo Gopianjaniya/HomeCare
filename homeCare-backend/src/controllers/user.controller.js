@@ -28,11 +28,14 @@ function verificationHash(code) {
 }
 
 async function sendEmailCode(user) {
-    const code = crypto.randomInt(100000, 1000000).toString();
-    user.emailVerificationCode = verificationHash(code);
-    user.emailVerificationExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.emailVerificationCode = code;
+    user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
-    await sendVerificationEmail({ email: user.email, code });
+    await sendVerificationEmail({
+           email: user.email,
+           code,
+       });
 }
 
 function buildPayload(user, req) {
