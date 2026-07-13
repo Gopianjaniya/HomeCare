@@ -3,7 +3,7 @@ import { useHomeCareApp } from "./hooks/useHomeCareApp.js";
   import { Toast } from "./components/feedback/Toast.jsx";
   import { Home } from "./components/home/Home.jsx";
   import { Auth } from "./components/auth/Auth.jsx";
-  import { Otp } from "./components/auth/Otp.jsx";
+  import { EmailVerification } from "./components/auth/EmailVerification.jsx";
   import { AdminLogin } from "./components/auth/AdminLogin.jsx";
   import { Profile } from "./components/profile/Profile.jsx";
   import { Address } from "./components/address/Address.jsx";
@@ -33,9 +33,9 @@ import { useHomeCareApp } from "./hooks/useHomeCareApp.js";
           />
         )}
         <Toast toasts={app.toasts} dismissToast={app.dismissToast} />
-        {app.view === "home" && (<Home search={app.search} setSearch={app.setSearch} services={app.filteredServices} openService={app.openService} loadServices={app.loadServices} />)}
+        {app.view === "home" && (<Home search={app.search} setSearch={app.setSearch} services={app.filteredServices} openService={app.openService} loadServices={app.loadServices} loading={app.loading} />)}
         {app.view === "auth" && (<Auth authMode={app.authMode} setAuthMode={app.setAuthMode} role={app.role} mobile={app.mobile} loading={app.loading} submitAuth={app.submitAuth} />)}
-        {app.view === "otp" && (<Otp mobile={app.mobile} otpHint={app.otpHint} loading={app.loading} verifyOtp={app.verifyOtp} resendOtp={app.resendOtp} />)}
+        {app.view === "emailVerification" && (<EmailVerification email={app.email} loading={app.loading} verifyEmail={app.verifyEmail} resendCode={app.resendEmailCode} />)}
         {app.view === "adminLogin" && <AdminLogin loading={app.loading} submitAdminLogin={app.submitAdminLogin} />}
         {app.view === "profile" && (<Profile role={app.role} loading={app.loading} submitProfile={app.submitProfile} userInfo={app.userInfo} isUpdate={app.isUpdateProfile} services={app.services} />)}
         {app.view === "address" && <Address addresses={app.addresses} loading={app.loading} addAddress={app.addAddress} />}

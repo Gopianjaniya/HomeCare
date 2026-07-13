@@ -16,6 +16,14 @@ async function ensureUserIndexes() {
     logger.info("[DATABASE] Dropped legacy unique mobile index");
   }
 
+  const sparseMobileRoleIndex = indexes.find(
+    (index) => index.name === "mobile_1_role_1" && index.unique && index.sparse && !index.partialFilterExpression
+  );
+  if (sparseMobileRoleIndex) {
+    await UserModel.collection.dropIndex("mobile_1_role_1");
+    logger.info("[DATABASE] Replaced mobile index to allow email-only accounts");
+  }
+
   await UserModel.syncIndexes();
 }
 

@@ -12,7 +12,7 @@ export function Auth({ authMode, setAuthMode, role, mobile, loading, submitAuth 
     <main className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md p-8">
         <h2 className="text-2xl font-bold text-slate-900">{authMode === "login" ? "Welcome back" : "Create account"}</h2>
-        <p className="mt-2 text-sm text-slate-600">Enter your mobile number and choose your role.</p>
+        <p className="mt-2 text-sm text-slate-600">Use your email address and choose your role.</p>
         <div className="mt-6 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
           <button
             type="button"
@@ -42,17 +42,17 @@ export function Auth({ authMode, setAuthMode, role, mobile, loading, submitAuth 
             </select>
           </Field>
           {!isAdmin && (
-            <Field label="Mobile">
-              <input name="mobile" defaultValue={mobile} maxLength="10" pattern="[6-9][0-9]{9}" placeholder="10-digit mobile" required />
+            <Field label="Email">
+              <input name="email" type="email" placeholder="you@example.com" required />
             </Field>
           )}
           <Button variant="primary" className="w-full" disabled={loading} type="submit">
-            {isAdmin ? "Continue to admin login" : "Send OTP"}
+            {isAdmin ? "Continue to admin login" : "Send verification email"}
           </Button>
         </form>
         <p className="mt-6 flex items-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-orange-600" aria-hidden />
-          Your number is used only for secure login with OTP.
+          We will send a secure 6-digit verification code to your email.
         </p>
       </Card>
     </main>

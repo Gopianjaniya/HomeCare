@@ -10,7 +10,6 @@ userRoutes.get("/test", (req, res) => {
 // Public routes (no authentication required)
 userRoutes.post("/signup", userController.signup);
 userRoutes.post("/login", userController.login);
-userRoutes.post("/resend-otp", userController.resendOtp);
-userRoutes.post("/verify-otp", userController.verifyOtp);
+userRoutes.post("/verify-email", userController.verifyEmail);
 
 module.exports = userRoutes;

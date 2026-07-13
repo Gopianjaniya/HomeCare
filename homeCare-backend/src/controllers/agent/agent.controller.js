@@ -108,7 +108,7 @@ exports.updateAgentProfile = async (req, res, next) => {
 exports.agentAddresses = async (req, res, next) => {
   try {
     const { agentId } = req.params;
-    const { line1, line2, city, state, pincode } = req.body;
+    const { line1, line2, city, state, pincode, location } = req.body;
     const agent = await agentModel.findOne({ _id: agentId });
 
     if (!agent) {
@@ -121,7 +121,7 @@ exports.agentAddresses = async (req, res, next) => {
         message: "you have no address for update",
       });
     }
-    agent.address.push({ line1, line2, city, state, pincode });
+    agent.address.push({ line1, line2, city, state, pincode, location });
     await agent.save();
     return res
       .status(200)
@@ -135,7 +135,7 @@ exports.agentAddresses = async (req, res, next) => {
 exports.updateAgentAddress = async (req, res, next) => {
   try {
     const { agentId, addressId } = req.params;
-    const { line1, line2, city, state, pincode } = req.body;
+    const { line1, line2, city, state, pincode, location } = req.body;
 
     const updateFields = {};
 
@@ -144,6 +144,7 @@ exports.updateAgentAddress = async (req, res, next) => {
     if (city) updateFields["address.$.city"] = city;
     if (state) updateFields["address.$.state"] = state;
     if (pincode) updateFields["address.$.pincode"] = pincode;
+    if (location) updateFields["address.$.location"] = location;
 
     const agentUpdateAdresses = await agentModel.findOneAndUpdate(
       { _id: agentId, "address._id": addressId },

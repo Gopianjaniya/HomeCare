@@ -54,6 +54,7 @@ const bookingSchema = new mongoose.Schema(
       city: String,
       state: String,
       pincode: String,
+      location: { latitude: Number, longitude: Number, placeId: String, formattedAddress: String },
     },
 
     price: {
@@ -73,6 +74,10 @@ const bookingSchema = new mongoose.Schema(
       ],
       default: "PENDING",
     },
+
+    offerQueue: [{ type: mongoose.Schema.Types.ObjectId, ref: "agent" }],
+    offerIndex: { type: Number, default: 0 },
+    offerExpiresAt: { type: Date, default: null },
 
     cancelReason: {
       type: String,

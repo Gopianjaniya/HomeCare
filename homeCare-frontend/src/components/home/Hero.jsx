@@ -1,7 +1,7 @@
 import { Search, ShieldCheck } from "lucide-react";
 import { Button } from "../ui/Button.jsx";
 
-export function Hero({ search, setSearch, loadServices }) {
+export function Hero({ search, setSearch, loadServices, loading }) {
   return (
     <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-orange-50/70 via-white to-white">
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-12 lg:py-20">
@@ -27,8 +27,8 @@ export function Hero({ search, setSearch, loadServices }) {
                 className="min-h-11 w-full border-0 bg-transparent text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
-            <Button variant="primary" className="shrink-0 sm:px-6" type="button" onClick={loadServices}>
-              Refresh list
+            <Button variant="primary" className="shrink-0 sm:px-6" type="button" disabled={loading} onClick={async () => { await loadServices(); }}>
+              {loading ? "Refreshing…" : "Refresh list"}
             </Button>
           </div>
         </div>

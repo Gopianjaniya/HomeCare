@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
     mobile: {
         type: String,
-        required: true,
+        required: false,
         match: /^(\+91|0)?[6789]\d{9}$/,
     },
     email: {
@@ -45,11 +45,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         // required: true
     },
-    otp: {
+    emailVerificationCode: {
         type: String,
     },
-    //   FIX: OTP expiry — 5 minutes ke baad OTP invalid ho jayega
-    otpExpiry: {
+    emailVerificationExpiry: {
         type: Date,
         default: null,
     },
@@ -61,7 +60,12 @@ const userSchema = new mongoose.Schema({
     timestamps: true,
 });
 
-userSchema.index({ mobile: 1, role: 1 }, { unique: true });
+// A sparse compound index still indexes a `null` mobile number, so it prevents
+// more than one email-only account per role. Index only real phone numbers.
+userSchema.index(
+    { mobile: 1, role: 1 },
+    { unique: true, partialFilterExpression: { mobile: { $type: "string" } } }
+);
 
 const UserModel = mongoose.model("user", userSchema);
 module.exports = UserModel;

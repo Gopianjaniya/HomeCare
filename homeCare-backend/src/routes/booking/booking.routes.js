@@ -29,7 +29,7 @@ bookingRoutes.get("/:bookingId", bookingController.getBookingById);
 // Booking status update routes
 bookingRoutes.patch("/accept/:bookingId", agentOnly, bookingController.acceptBooking);
 
-bookingRoutes.patch("/reject/:bookingId", bookingController.rejectBooking);
+bookingRoutes.patch("/reject/:bookingId", agentOnly, bookingController.rejectBooking);
 
 bookingRoutes.patch("/start/:bookingId", bookingController.startBooking);
 

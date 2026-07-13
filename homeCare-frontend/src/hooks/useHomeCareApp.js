@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
     const [authMode, setAuthMode] = useState("login");
     const [role, setRole] = useState(read("HomeCare_role", "customer"));
     const [mobile, setMobile] = useState("");
+    const [email, setEmail] = useState("");
     const [token, setToken] = useState(read("HomeCare_access_token"));
     const [refreshToken, setRefreshToken] = useState(read("HomeCare_refresh_token"));
     const [adminToken, setAdminToken] = useState(read("HomeCare_admin_access_token"));
@@ -37,7 +38,6 @@ import { useEffect, useMemo, useState } from "react";
     const [payments, setPayments] = useState([]);
     const [draftBooking, setDraftBooking] = useState(null);
     const [paymentResult, setPaymentResult] = useState(null);
-    const [otpHint, setOtpHint] = useState("");
     const [search, setSearch] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -337,14 +337,13 @@ import { useEffect, useMemo, useState } from "react";
         return;
       }
 
-      const nextMobile = form.get("mobile").trim();
-      setMobile(nextMobile); setRole(nextRole);
-      localStorage.setItem("HomeCare_mobile", nextMobile);
+      const nextEmail = form.get("email").trim().toLowerCase();
+      setEmail(nextEmail); setRole(nextRole);
       localStorage.setItem("HomeCare_role", nextRole);
       try {
         setLoading(true);
-        const result = await api(`/auth/${authMode}`, { method: "POST", body: JSON.stringify({ mobile: nextMobile, role: nextRole }) });
-        setOtpHint(result.data?.otp || ""); setView("otp"); flash("OTP sent successfully.");
+        await api(`/auth/${authMode}`, { method: "POST", body: JSON.stringify({ email: nextEmail, role: nextRole }) });
+        setView("emailVerification"); flash("Verification email sent.");
       } catch (err) { flash(err.message, "error"); } finally { setLoading(false); }
     }
 
@@ -365,12 +364,12 @@ import { useEffect, useMemo, useState } from "react";
       } catch (err) { flash(err.message, "error"); } finally { setLoading(false); }
     }
 
-    async function verifyOtp(event) {
+    async function verifyEmail(event) {
       event.preventDefault();
-      const otp = new FormData(event.currentTarget).get("otp").trim();
+      const code = new FormData(event.currentTarget).get("code").trim();
       try {
         setLoading(true);
-        const result = await api("/auth/verify-otp", { method: "POST", body: JSON.stringify({ mobile, role, otp }) });
+        const result = await api("/auth/verify-email", { method: "POST", body: JSON.stringify({ email, role, code }) });
         const data = result.data || {};
         const profile = data.profile || null;
         const nextRole = data.role || role;
@@ -390,21 +389,16 @@ import { useEffect, useMemo, useState } from "react";
         if (nextView === "profile" && nextRole === "agent") await loadServices();
         if (nextView === "home") await loadServices();
         if (nextView === "agent") { await loadBookings(profile._id, nextRole); await loadAgentServices(profile._id); await loadAgentWallet(profile._id); }
-        flash("Login successful.");
+        flash("Email verified. Login successful.");
       } catch (err) { flash(err.message, "error"); } finally { setLoading(false); }
     }
 
-    async function resendOtp() {
-      if (!mobile || !role) {
-        flash("Mobile number missing hai. Please login again.", "error");
-        setView("auth");
-        return;
-      }
+    async function resendEmailCode() {
+      if (!email || !role) return;
       try {
         setLoading(true);
-        const result = await api("/auth/resend-otp", { method: "POST", body: JSON.stringify({ mobile, role }) });
-        setOtpHint(result.data?.otp || "");
-        flash("OTP resent successfully.");
+        await api("/auth/login", { method: "POST", body: JSON.stringify({ email, role }) });
+        flash("A new verification code was sent.");
       } catch (err) { flash(err.message, "error"); } finally { setLoading(false); }
     }
 
@@ -438,6 +432,9 @@ import { useEffect, useMemo, useState } from "react";
       event.preventDefault();
       if (!profileId) { flash("Please complete your profile first.", "error"); return; }
       const body = Object.fromEntries(new FormData(event.currentTarget).entries());
+      if (body.location) {
+        try { body.location = JSON.parse(body.location); } catch { delete body.location; }
+      }
       const path = role === "agent" ? `/agent/agentAddresses/${profileId}` : `/customer/addresses/${profileId}`;
       try {
         setLoading(true);
@@ -515,16 +512,16 @@ import { useEffect, useMemo, useState } from "react";
     }, []);
 
     return {
-      view, setView, authMode, setAuthMode, role, mobile, token, refreshToken,
+      view, setView, authMode, setAuthMode, role, mobile, email, token, refreshToken,
       adminToken, adminEmail, userId, profileId, profileType,
       userName, userInfo, isUpdateProfile,
       addresses, services, filteredServices, selectedService, selectedVariant, setSelectedVariant,
       bookings, agentBookings, agentServices, agentWallet, adminBookings, payments, draftBooking, paymentResult,
-      otpHint, search, setSearch, message, error, toasts, loading,
+      search, setSearch, message, error, toasts, loading,
       go, logout, logoutAdmin, goUpdateProfile, dismissToast,
       loadServices, loadBookings, loadAgentServices, loadAgentWallet, loadAdminData,
       createService, createVariant, createAgentService, updateServiceApproval, removeService, removeVariant,
-      submitAuth, submitAdminLogin, verifyOtp, resendOtp, submitProfile,
+      submitAuth, submitAdminLogin, verifyEmail, resendEmailCode, submitProfile,
       addAddress, openService, createBooking, createPayment, updateBooking,
     };
   }
