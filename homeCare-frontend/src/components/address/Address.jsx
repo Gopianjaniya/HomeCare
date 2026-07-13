@@ -1,9 +1,27 @@
 import { MapPin } from "lucide-react";
 import { Button } from "../ui/Button.jsx";
+import { useState } from "react";
 import { Card } from "../ui/Card.jsx";
 import { Field } from "../ui/Field.jsx";
 
 export function Address({ addresses, loading, addAddress }) {
+  const [location, setLocation] = useState(null);
+  const useLiveLocation = () => {
+    if (!navigator.geolocation) return alert("Live location is not supported by this browser.");
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+      const next = { latitude: coords.latitude, longitude: coords.longitude };
+      const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (key) {
+        try {
+          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${key}`);
+          const data = await response.json();
+          const result = data.results?.[0];
+          if (result) { next.placeId = result.place_id; next.formattedAddress = result.formatted_address; }
+        } catch { /* Coordinates are still saved if reverse geocoding is unavailable. */ }
+      }
+      setLocation(next);
+    }, () => alert("Location permission is required to use live location."), { enableHighAccuracy: true, timeout: 10000 });
+  };
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 lg:px-12">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -11,6 +29,7 @@ export function Address({ addresses, loading, addAddress }) {
           <h2 className="text-xl font-bold text-slate-900">Add address</h2>
           <p className="mt-1 text-sm text-slate-600">Save once — reuse while booking any service.</p>
           <form className="mt-6 grid gap-4" onSubmit={addAddress}>
+            <input type="hidden" name="location" value={location ? JSON.stringify(location) : ""} />
             <Field label="Line 1">
               <input name="line1" required />
             </Field>
@@ -31,6 +50,9 @@ export function Address({ addresses, loading, addAddress }) {
             <Button variant="primary" disabled={loading} type="submit">
               Save address
             </Button>
+            <Button variant="secondary" type="button" onClick={useLiveLocation}>
+              {location ? "Live location attached" : "Use live location"}
+            </Button>
           </form>
         </Card>
         <Card className="h-fit">
@@ -46,6 +68,7 @@ export function Address({ addresses, loading, addAddress }) {
                   <p className="mt-1 text-sm text-slate-600">
                     {address.city}, {address.state} — {address.pincode}
                   </p>
+                  {address.location?.latitude != null && <p className="mt-1 text-xs text-slate-500">Live location saved</p>}
                 </div>
               ))
             ) : (

@@ -77,12 +77,12 @@ const CustomerModel = require("../../models/customer.model");
   exports.customerAddresses = async (req, res, next) => {
     try {
       const { customerId } = req.params;
-      const { line1, line2, city, state, pincode } = req.body;
+      const { line1, line2, city, state, pincode, location } = req.body;
       const customer = await CustomerModel.findOne({ _id: customerId });
       if (!customer) {
         return res.status(404).json({ success: false, message: "user not found" });
       }
-      customer.address.push({ line1, line2, city, state, pincode });
+      customer.address.push({ line1, line2, city, state, pincode, location });
       await customer.save();
       return res
         .status(200)
@@ -96,7 +96,7 @@ const CustomerModel = require("../../models/customer.model");
   exports.updateCustomerAddress = async (req, res) => {
     try {
       const { customerId, addressId } = req.params;
-      const { line1, line2, city, state, pincode } = req.body;
+      const { line1, line2, city, state, pincode, location } = req.body;
 
       const result = await CustomerModel.updateOne(
         { _id: customerId, "address._id": addressId },
@@ -107,6 +107,7 @@ const CustomerModel = require("../../models/customer.model");
             "address.$.city": city,
             "address.$.state": state,
             "address.$.pincode": pincode,
+            "address.$.location": location,
           },
         }
       );
@@ -147,4 +148,3 @@ const CustomerModel = require("../../models/customer.model");
       return res.status(500).json({ success: false, message: "internal server error" });
     }
   };
-  

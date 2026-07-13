@@ -47,7 +47,8 @@ const agentSchema = new mongoose.Schema(
             line2: { type: String },
             city: { type: String },
             state: { type: String },
-            pincode: { type: String }
+            pincode: { type: String },
+            location: { latitude: Number, longitude: Number, placeId: String, formattedAddress: String }
         }],
         documents: [{
             type: { type: String },

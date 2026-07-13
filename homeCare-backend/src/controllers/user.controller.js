@@ -1,357 +1,168 @@
+const crypto = require("crypto");
 const { generateAccessToken, generateRefreshToken } = require("../middleware/auth.middleware");
 const AgentModel = require("../models/agent.model");
 const CustomerModel = require("../models/customer.model");
 const UserModel = require("../models/user.model");
-const { generateOtp } = require("../utils/common.utils");
+const { sendVerificationEmail } = require("../utils/email.utils");
 const logger = require("../utils/logger");
-const { sendOtpSms, resendOtpSms, verifyTwilioOtp, isSmsProviderConfigured } = require("../utils/sms.utils");
-function shouldExposeOtp() {
-    return process.env.ALLOW_MOCK_OTP === "true" || !isSmsProviderConfigured();
+
+function authError(res, error) {
+    const status = error.statusCode || 500;
+    return res
+        .status(status)
+        .json({ success: false, message: status >= 500 ? "Internal server error" : error.message });
 }
 
-function sendAuthError(res, error, fallbackMessage = "Internal server error") {
-    const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json({
-        success: false,
-        message: statusCode >= 500 ? fallbackMessage : error.message,
-        error: error.message,
-    });
+function validRole(role) {
+    return ["customer", "agent"].includes(role);
 }
 
-/*
-Signup API - Only mobile and role required
-Generates static OTP and returns it in response
-*/
+function normalizedEmail(email) {
+    return String(email || "")
+        .trim()
+        .toLowerCase();
+}
+
+function verificationHash(code) {
+    return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+async function sendEmailCode(user) {
+    const code = crypto.randomInt(100000, 1000000).toString();
+    user.emailVerificationCode = verificationHash(code);
+    user.emailVerificationExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+    await sendVerificationEmail({ email: user.email, code });
+}
+
+function buildPayload(user, req) {
+    return {
+        id: user._id.toString(),
+        userId: user._id.toString(),
+        email: user.email,
+        mobile: user.mobile || "",
+        role: user.role,
+        isActive: user.isActive,
+        isFreeze: user.isFreeze,
+        isBlock: user.isBlock,
+        status: user.status,
+        ipAddress: req.ip || req.connection.remoteAddress,
+    };
+}
+
 exports.signup = async(req, res) => {
     try {
-        logger.info("SignUp API called .....");
-        const { mobile, role } = req.body;
+        const email = normalizedEmail(req.body.email);
+        const { role, mobile } = req.body;
 
-        if (!mobile || !role) {
-            return res.status(400).json({
-                success: false,
-                message: "Mobile number and role are required",
-            });
-        }
-
-        // Validate role
-        if (!["customer", "agent"].includes(role)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid role. Must be 'customer' or 'agent'",
-            });
-        }
-
-        // Validate mobile format (10 digits)
-        if (!/^[6789]\d{9}$/.test(mobile)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid mobile number format",
-            });
-        }
-
-        const formattedMobile = `+91${mobile}`;
-        const isExist = await UserModel.findOne({ mobile: formattedMobile, role });
-
-        if (isExist) {
-            return res.status(409).json({
-                success: false,
-                message: "User already exists with this mobile number and role",
-            });
-        }
-
-        // Generate OTP with 5-minute expiry
-        const otp = generateOtp(6);
-        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-
-        // Create new user with OTP
-        let user = await UserModel.create({
-            mobile: formattedMobile,
+        if (!email || !validRole(role))
+            return res
+                .status(400)
+                .json({ success: false, message: "A valid email and customer or agent role are required" });
+        if (await UserModel.findOne({ email }))
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    message: "An account already exists for this email. Please log in.",
+                });
+        const user = await UserModel.create({
+            email,
+            mobile: mobile || undefined,
             role,
-            otp,
-            otpExpiry,
             isProfileCompleted: false,
         });
+
         try {
-            await sendOtpSms(formattedMobile, otp);
+            await sendEmailCode(user);
         } catch (error) {
             await UserModel.deleteOne({ _id: user._id });
             throw error;
         }
-
-        // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp()) {
-            logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
-        } else {
-            logger.info(`New user created: ${user._id} with mobile: ${formattedMobile}`);
-        }
-
-        return res.status(201).json({
-            success: true,
-            message: "OTP sent successfully. Please verify to continue.",
-            data: {
-                mobile: user.mobile,
-                role: user.role,
-                // | Return OTP in local/mock mode
-                ...(shouldExposeOtp() && { otp }),
-            },
-        });
+        return res
+            .status(201)
+            .json({
+                success: true,
+                message: "A 6-digit verification code was sent to your email.",
+                data: { email, role },
+            });
     } catch (error) {
-        logger.error(`[Error] while sign-up: ${error.message}`);
-        return sendAuthError(res, error);
+        logger.error(`Email signup error: ${error.message}`);
+        return authError(res, error);
     }
 };
 
-/*
-Login API - Only mobile and role required
-Generates static OTP and returns it in response
-*/
 exports.login = async(req, res) => {
     try {
-        logger.info("Login API called .....");
-        const { mobile, role } = req.body;
-
-        if (!mobile || !role) {
-            return res.status(400).json({
-                success: false,
-                message: "Mobile number and role are required",
-            });
-        }
-
-        // Validate role
-        if (!["customer", "agent"].includes(role)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid role. Must be 'customer' or 'agent'",
-            });
-        }
-
-        // Validate mobile format
-        if (!/^[6789]\d{9}$/.test(mobile)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid mobile number format",
-            });
-        }
-
-        const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile, role });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found. Please sign up first.",
-            });
-        }
-
-        // Check if role matches
-        if (user.role !== role) {
-            return res.status(403).json({
-                success: false,
-                message: "Invalid role for this user",
-            });
-        }
-
-        // Generate new OTP with 5-minute expiry
-        const otp = generateOtp(6);
-        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-        await UserModel.updateOne({ mobile: formattedMobile, role }, { otp, otpExpiry });
-        await sendOtpSms(formattedMobile, otp);
-
-        // | FIX: Production me OTP log nahi karna chahiye
-        if (shouldExposeOtp()) {
-            logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}, OTP: ${otp}`);
-        } else {
-            logger.info(`User login attempt: ${user._id} with mobile: ${formattedMobile}`);
-        }
-
-        return res.status(200).json({
+        const email = normalizedEmail(req.body.email);
+        const { role } = req.body;
+        if (!email || !validRole(role))
+            return res
+                .status(400)
+                .json({ success: false, message: "A valid email and customer or agent role are required" });
+        const user = await UserModel.findOne({ email, role });
+        if (!user)
+            return res
+                .status(404)
+                .json({
+                    success: false,
+                    message: "No account found for this email and role. Please sign up.",
+                });
+        if (!user.isActive || user.isBlock)
+            return res.status(403).json({ success: false, message: "Account is inactive or blocked" });
+        await sendEmailCode(user);
+        return res.json({
             success: true,
-            message: "OTP sent successfully. Please verify to continue.",
-            data: {
-                mobile: user.mobile,
-                role: user.role,
-                // | Return OTP in local/mock mode
-                ...(shouldExposeOtp() && { otp }),
-            },
+            message: "A 6-digit verification code was sent to your email.",
+            data: { email, role },
         });
     } catch (error) {
-        logger.error(`[Error] while login: ${error.message}`);
-        return sendAuthError(res, error);
+        logger.error(`Email login error: ${error.message}`);
+        return authError(res, error);
     }
 };
 
-exports.resendOtp = async(req, res) => {
+exports.verifyEmail = async(req, res) => {
     try {
-        logger.info("Resend OTP API called .....");
-        const { mobile, role } = req.body;
-
-        if (!mobile || !role) {
-            return res.status(400).json({
-                success: false,
-                message: "Mobile number and role are required",
-            });
-        }
-
-        if (!["customer", "agent"].includes(role)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid role. Must be 'customer' or 'agent'",
-            });
-        }
-
-        if (!/^[6789]\d{9}$/.test(mobile)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid mobile number format",
-            });
-        }
-
-        const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile, role });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found. Please sign up first.",
-            });
-        }
-
-        if (user.role !== role) {
-            return res.status(403).json({
-                success: false,
-                message: "Invalid role for this user",
-            });
-        }
-
-        const otp = generateOtp(6);
-        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-        await UserModel.updateOne({ _id: user._id }, { otp, otpExpiry });
-        await resendOtpSms(formattedMobile, otp);
-
-        if (shouldExposeOtp()) {
-            logger.info(`OTP resent for user: ${user._id}, OTP: ${otp}`);
-        } else {
-            logger.info(`OTP resent for user: ${user._id}`);
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "OTP resent successfully.",
-            data: {
-                mobile: user.mobile,
-                role: user.role,
-                ...(shouldExposeOtp() && { otp }),
-            },
+        const email = normalizedEmail(req.body.email);
+        const code = String(req.body.code || "").trim();
+        const { role } = req.body;
+        if (!email || !code || !validRole(role))
+            return res.status(400).json({ success: false, message: "Email, role, and 6-digit verification code are required" });
+        const user = await UserModel.findOne({
+            email,
+            role,
+            emailVerificationCode: verificationHash(code),
+            emailVerificationExpiry: { $gt: new Date() },
         });
-    } catch (error) {
-        logger.error(`[Error] while resending OTP: ${error.message}`);
-        return sendAuthError(res, error);
-    }
-};
-
-// Verify OTP - Verify static OTP
-/*
-1. Verify static OTP
-2. Check if user exists
-3. Check if profile is completed
-4. Generate JWT tokens
-5. Send welcome email if new user
-6. Send profile completion email if profile not completed
-*/
-exports.verifyOtp = async(req, res) => {
-    try {
-        logger.info(`Verify OTP API called.`);
-
-        const { otp, mobile, role } = req.body;
-
-        if (!otp || !mobile || !role) {
-            return res.status(400).json({
-                success: false,
-                message: "OTP, mobile number, and role are required",
-            });
-        }
-
-        const formattedMobile = `+91${mobile}`;
-        const user = await UserModel.findOne({ mobile: formattedMobile, role });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found. Please sign up first.",
-            });
-        }
-
-        // Check role match
-        if (user.role !== role) {
-            return res.status(403).json({
-                success: false,
-                message: "Invalid role for this user",
-            });
-        }
-
-        // | FIX: OTP expiry check - 5 minutes ke baad invalid
-        if (user.otpExpiry && new Date() > new Date(user.otpExpiry)) {
-            return res.status(401).json({
-                success: false,
-                message: "OTP has expired. Please request a new one.",
-            });
-        }
-
-        if (isSmsProviderConfigured()) {
-            await verifyTwilioOtp(formattedMobile, otp);
-        } else if (user.otp !== otp) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid OTP. Please check and try again.",
-            });
-        }
-
-        // Check user status
-        if (!user.isActive || user.isBlock) {
-            return res.status(403).json({
-                success: false,
-                message: "Account is inactive or blocked",
-            });
-        }
-
-        // Generate JWT tokens
-        const payload = {
-            id: user._id.toString(),
-            userId: user._id.toString(),
-            email: user.email || "",
-            mobile: user.mobile,
-            role: user.role,
-            isActive: user.isActive,
-            isFreeze: user.isFreeze,
-            isBlock: user.isBlock,
-            status: user.status,
-            ipAddress: req.ip || req.connection.remoteAddress,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-        };
-
+        if (!user)
+            return res
+                .status(401)
+                .json({
+                    success: false,
+                    message: "This verification code is invalid or has expired. Please request a new one.",
+                });
+        if (!user.isActive || user.isBlock)
+            return res.status(403).json({ success: false, message: "Account is inactive or blocked" });
+        const payload = buildPayload(user, req);
         const accessToken = generateAccessToken(payload);
         const refreshToken = generateRefreshToken(payload);
-
-        // | FIX: Clear OTP + otpExpiry after successful verification
-        await UserModel.updateOne({ _id: user._id }, { accessToken, refreshToken, ipAddress: payload.ipAddress, otp: null, otpExpiry: null });
-
-        logger.info(`OTP verified successfully for user: ${user._id}`);
-
+        await UserModel.updateOne({ _id: user._id }, {
+            accessToken,
+            refreshToken,
+            ipAddress: payload.ipAddress,
+            emailVerificationCode: null,
+            emailVerificationExpiry: null,
+        });
         const ProfileModel = user.role === "agent" ? AgentModel : CustomerModel;
         const profile = await ProfileModel.findOne({ userId: user._id });
-        const hasProfile = Boolean(profile);
-
-        if (hasProfile && !user.isProfileCompleted) {
-            await UserModel.findByIdAndUpdate(user._id, { isProfileCompleted: true });
-        }
-
-        return res.status(200).json({
+        if (profile && !user.isProfileCompleted)
+            await UserModel.updateOne({ _id: user._id }, { isProfileCompleted: true });
+        return res.json({
             success: true,
-            message: "OTP verified successfully",
+            message: "Email verified successfully",
             data: {
-                isProfileCompleted: hasProfile,
+                isProfileCompleted: Boolean(profile),
                 role: user.role,
                 userId: user._id,
                 profile,
@@ -360,7 +171,7 @@ exports.verifyOtp = async(req, res) => {
             },
         });
     } catch (error) {
-        logger.error(`Error in verify OTP: ${error.message}`);
-        return sendAuthError(res, error);
+        logger.error(`Email verification error: ${error.message}`);
+        return authError(res, error);
     }
 };

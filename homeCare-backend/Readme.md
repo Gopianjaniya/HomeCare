@@ -35,6 +35,12 @@ JWT_REFRESH_SECRET_KEY=change-this-refresh-secret
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-this-password
 FRONTEND_URL=http://localhost:5173
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_SECURE=false
+MAIL_FROM="HomeCare <your-email@gmail.com>"
 ```
 
 Local MongoDB chal raha ho to backend startup par ye log aayega:
@@ -45,19 +51,17 @@ Local MongoDB chal raha ho to backend startup par ye log aayega:
 
 ## Deploy Notes
 
-Render/backend deploy par Node 20+ use karo. OTP ke liye recommended setup:
+Render/backend deploy par Node 20+ use karo. Email OTP ke liye SMTP configure karo:
 
 ```env
 NODE_ENV=production
-FAST2SMS_API_KEY=your-fast2sms-key
-ALLOW_MOCK_OTP=false
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_SECURE=false
+MAIL_FROM="HomeCare <your-email@gmail.com>"
 FRONTEND_URL=https://your-frontend-domain.onrender.com
 ```
 
-Demo/testing deployment me agar SMS provider nahi lagana hai, tab:
-
-```env
-FAST2SMS_API_KEY=
-```
-
-Is mode me OTP API response me aayega, jise frontend screen par dikha dega. Agar SMS provider configured hai aur phir bhi OTP response me chahiye, tab `ALLOW_MOCK_OTP=true` set karo.
+Gmail use kar rahe ho to normal account password ke bajay Google App Password use karo. OTP API response me return nahi hota; woh sirf entered email address par bheja jata hai.

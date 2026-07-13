@@ -1,5 +1,4 @@
 const os = require("os");
-const otpGenerator = require('otp-generator');
 
 exports.getLocalIP = () => {
   const nets = os.networkInterfaces();
@@ -14,14 +13,5 @@ exports.getLocalIP = () => {
   }
   return localIP;
 };
-
-exports.generateOtp = (digit) => {
-  return otpGenerator.generate(digit, {
-    upperCaseAlphabets: false,
-    specialChars: false,
-    lowerCaseAlphabets: false,
-    digits: true
-  });
-}
 
 
