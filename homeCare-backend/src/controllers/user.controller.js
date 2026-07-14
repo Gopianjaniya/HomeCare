@@ -29,13 +29,13 @@ function verificationHash(code) {
 
 async function sendEmailCode(user) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    user.emailVerificationCode = code;
-    user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.emailVerificationCode = verificationHash(code);
+    user.emailVerificationExpiry = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
     await sendVerificationEmail({
-           email: user.email,
-           code,
-       });
+        email: user.email,
+        code,
+    });
 }
 
 function buildPayload(user, req) {
@@ -63,12 +63,10 @@ exports.signup = async(req, res) => {
                 .status(400)
                 .json({ success: false, message: "A valid email and customer or agent role are required" });
         if (await UserModel.findOne({ email }))
-            return res
-                .status(409)
-                .json({
-                    success: false,
-                    message: "An account already exists for this email. Please log in.",
-                });
+            return res.status(409).json({
+                success: false,
+                message: "An account already exists for this email. Please log in.",
+            });
         const user = await UserModel.create({
             email,
             mobile: mobile || undefined,
@@ -82,13 +80,11 @@ exports.signup = async(req, res) => {
             await UserModel.deleteOne({ _id: user._id });
             throw error;
         }
-        return res
-            .status(201)
-            .json({
-                success: true,
-                message: "A 6-digit verification code was sent to your email.",
-                data: { email, role },
-            });
+        return res.status(201).json({
+            success: true,
+            message: "A 6-digit verification code was sent to your email.",
+            data: { email, role },
+        });
     } catch (error) {
         logger.error(`Email signup error: ${error.message}`);
         return authError(res, error);
@@ -105,12 +101,10 @@ exports.login = async(req, res) => {
                 .json({ success: false, message: "A valid email and customer or agent role are required" });
         const user = await UserModel.findOne({ email, role });
         if (!user)
-            return res
-                .status(404)
-                .json({
-                    success: false,
-                    message: "No account found for this email and role. Please sign up.",
-                });
+            return res.status(404).json({
+                success: false,
+                message: "No account found for this email and role. Please sign up.",
+            });
         if (!user.isActive || user.isBlock)
             return res.status(403).json({ success: false, message: "Account is inactive or blocked" });
         await sendEmailCode(user);
@@ -131,7 +125,11 @@ exports.verifyEmail = async(req, res) => {
         const code = String(req.body.code || "").trim();
         const { role } = req.body;
         if (!email || !code || !validRole(role))
-            return res.status(400).json({ success: false, message: "Email, role, and 6-digit verification code are required" });
+            return res.status(400).json({
+                success: false,
+                message: "Email, role, and 6-digit verification code are required",
+            });
+
         const user = await UserModel.findOne({
             email,
             role,
@@ -139,12 +137,10 @@ exports.verifyEmail = async(req, res) => {
             emailVerificationExpiry: { $gt: new Date() },
         });
         if (!user)
-            return res
-                .status(401)
-                .json({
-                    success: false,
-                    message: "This verification code is invalid or has expired. Please request a new one.",
-                });
+            return res.status(401).json({
+                success: false,
+                message: "This verification code is invalid or has expired. Please request a new one.",
+            });
         if (!user.isActive || user.isBlock)
             return res.status(403).json({ success: false, message: "Account is inactive or blocked" });
         const payload = buildPayload(user, req);
